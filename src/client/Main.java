@@ -7,11 +7,14 @@ import javax.swing.*;
 
 public class Main {
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(WindowWrapper::new);
+        SwingUtilities.invokeLater(()->{
+
+        });
+
+
         Thread networkThread = new Thread(() -> {
             try {
                 Client client = new Client();
-
             } catch (Exception e) {
                 e.printStackTrace();
             }

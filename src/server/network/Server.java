@@ -43,4 +43,15 @@ public class Server {
             }
         }
     }
+
+    public void listen() {
+        while (true) {
+            try {
+                serverSocket.accept();
+                System.out.println("Accepted connection");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
