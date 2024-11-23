@@ -1,6 +1,5 @@
 package client.ui;
 
-import client.network.Client;
 import client.network.Message;
 
 import javax.swing.*;
@@ -28,14 +27,14 @@ public class UsernamePrompt extends Scene {
                 if (!username.isEmpty()) {
                     try {
                         WindowWrapper windowWrapper = WindowWrapper.getInstance();
-                        boolean accepted = windowWrapper.getClient().connect(username);
+                        boolean accepted = windowWrapper.getClient().connect(username.replace(" ", "_"));
                         if (accepted) {
                             windowWrapper.setCurrentScreen(Screen.CHAT);
                         } else {
                             JOptionPane.showMessageDialog(null, "Username already taken");
                         }
                     } catch (IOException ex) {
-                        throw new RuntimeException(ex);
+                        JOptionPane.showMessageDialog(null, "Failed to connect to the server. Please check your internet connection, or try again later.");
                     }
                 }
             }
@@ -48,4 +47,7 @@ public class UsernamePrompt extends Scene {
 
     @Override
     public void updateMessages(List<Message> messages) {}
+
+    @Override
+    public void updateUsers(String[] users) {}
 }

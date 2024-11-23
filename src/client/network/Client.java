@@ -3,22 +3,18 @@ package client.network;
 import client.ui.WindowWrapper;
 import common.APISkeleton;
 
-import javax.swing.*;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 
 public class Client implements APISkeleton {
+    private String username;
     private BufferedReader in;
     private PrintWriter out;
 
-    private List<Message> messages;
+    private final List<Message> messages;
 
     public Client() {
         this.messages = new ArrayList<>();
@@ -26,7 +22,17 @@ public class Client implements APISkeleton {
 
     @Override
     public boolean connect(String username) throws IOException {
-        Socket socket = new Socket("localhost", 8790);
+        Properties properties = new Properties();
+        // Done purely for convenience
+        int port;
+        try (InputStreamReader reader = new InputStreamReader(new FileInputStream("res/server.properties"))) {
+            properties.load(reader);
+            port = Integer.parseInt(properties.getProperty("SERVER_PORT"));
+        } catch (IOException e) {
+            System.out.println("Could not load properties file. Defaulting to 8790");
+            port = 8790;
+        }
+        Socket socket = new Socket("localhost", port);
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         this.out = new PrintWriter(socket.getOutputStream());
 
@@ -40,23 +46,27 @@ public class Client implements APISkeleton {
             return false;
         } else {
             String[] getServerName = response.split(" ", 2);
-            System.out.println(Arrays.toString(getServerName));
             messages.add(new Message("Connected to " + getServerName[1], "SERVER", MessageType.NORMAL));
+            this.username = username;
             onConnect();
             return true;
         }
+    }
+
+    @Override
+    public void sendMessage(String m, String sender)  {
+        out.println("POST_MESSAGE " + sender + " " + m);
+        out.flush();
     }
 
     private void getConnectedClientsTimer() {
         new Thread(() -> {
             while (true) {
                 try {
-                    String[] connectedClients = getConnectedClients();
-                    System.out.println(Arrays.toString(connectedClients));
-
+                    getConnectedClients();
                     Thread.sleep(5000);
-                } catch (IOException | InterruptedException e) {
-                    System.out.println("Could not get connected clients");
+                } catch (InterruptedException e) {
+                    System.out.println("Could not sleep. Mood.");
                 }
             }
         }).start();
@@ -72,69 +82,63 @@ public class Client implements APISkeleton {
                         break;
                     }
                     String[] getMessageType = message.split(" ", 2);
-                    if (getMessageType[0].equals("MESSAGE")) {
-                        String[] getSender = getMessageType[1].split(" ", 2);
-                        messages.add(new Message(getSender[1], getSender[0], MessageType.NORMAL));
-                    } else if (getMessageType[0].equals("PRIVATE_MESSAGE")) {
-                        String[] getSender = getMessageType[1].split(" ", 2);
-                        messages.add(new Message(getSender[1], getSender[0], MessageType.PRIVATE));
+                    switch (getMessageType[0]) {
+                        case "MESSAGE", "PRIVATE_MESSAGE" -> {
+                            String[] getSender = getMessageType[1].split(" ", 2);
+                            messages.add(new Message(getSender[1], getSender[0], getMessageType[0].equals("MESSAGE") ? MessageType.NORMAL : MessageType.PRIVATE));
+                            WindowWrapper.getInstance().updateMessages();
+                        }
+                        case "CONNECTED_CLIENTS" -> {
+                            String[] clients = getMessageType[1].split(" ");
+                            WindowWrapper.getInstance().updateUsers(clients);
+                        }
+                        case "MESSAGE_REJECTED" -> WindowWrapper.getInstance().bannedWordPopup(getMessageType[1]);
+                        case "BANNED_PHRASES" -> {
+                            StringBuilder helpMessage = new StringBuilder("You are not allowed to use any of the following words or phrases: ");
+                            String phrase;
+                            while ((phrase = in.readLine()) != null) {
+                                if (phrase.isEmpty()) {
+                                    break;
+                                }
+                                helpMessage.append(phrase).append(", ");
+                            }
+                            helpMessage.delete(helpMessage.length() - 2, helpMessage.length());
+                            messages.add(new Message(helpMessage.toString(), "SERVER", MessageType.NORMAL));
+                            WindowWrapper.getInstance().updateMessages();
+                        }
                     }
-                    WindowWrapper.getInstance().updateMessages();
                 } catch (IOException e) {
-                    System.out.println("Could not get message");
+                    System.out.println("Could not get content");
                 }
             }
         }).start();
     }
 
     public void onConnect() {
-        System.out.println("Connected to the server");
+        System.out.println("Connected to the server as " + username);
         serverListener();
+        getConnectedClientsTimer();
     }
 
     public List<Message> getMessages() {
         return messages;
     }
 
-    @Override
-    public int sendMessage(String m) throws Exception {
-        return 0;
+    public String getUsername() {
+        return username;
     }
 
     @Override
-    public int sendMessageToSpecificClient(String m, int clientID) throws Exception {
-        return 0;
-    }
-
-    @Override
-    public int sendMessageToMultipleClients(String m, int[] clientIDs) throws Exception {
-        return 0;
-    }
-
-    @Override
-    public int sendMessageExcept(String m, int[] clientIDs) throws Exception {
-        return 0;
-    }
-
-    @Override
-    public String[] getBannedPhrases() throws Exception {
+    public String[] getBannedPhrases() {
+        out.println("GET_BANNED_PHRASES");
+        out.flush();
         return new String[0];
     }
 
     @Override
-    public String[] getConnectedClients() throws IOException {
+    public void getConnectedClients() {
         out.println("GET_CONNECTED_CLIENTS");
         out.flush();
-
-        List<String> connectedClients = new ArrayList<>();
-        String line;
-        while ((line = in.readLine()) != null) {
-            if (line.isEmpty()) {
-                break;
-            }
-            connectedClients.add(line);
-        }
-        return connectedClients.toArray(new String[0]);
     }
 
     @Override

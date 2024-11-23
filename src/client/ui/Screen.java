@@ -1,7 +1,5 @@
 package client.ui;
 
-import javax.swing.*;
-
 public enum Screen {
     USERNAME_PROMPT(new UsernamePrompt()),
     CHAT(new Chat());

@@ -11,11 +11,11 @@ public class WindowWrapper extends JFrame {
     private static WindowWrapper instance = null;
 
     private Screen currentScreen;
-    private JLayeredPane mainPanel;
-    private Client client;
+    private final JLayeredPane mainPanel;
+    private final Client client;
 
     public WindowWrapper() {
-        super("Window Wrapper");
+        super("Messenger");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
@@ -28,6 +28,7 @@ public class WindowWrapper extends JFrame {
         setSize(900, 500);
         setResizable(false);
         setLocationRelativeTo(null);
+        setIconImage(new ImageIcon("res/icon.png").getImage());
 
         mainPanel = new JLayeredPane();
         mainPanel.setPreferredSize(new Dimension(getWidth(), getHeight()));
@@ -56,6 +57,16 @@ public class WindowWrapper extends JFrame {
         if (currentScreen == Screen.CHAT) {
             currentScreen.getPanel().updateMessages(client.getMessages());
         }
+    }
+
+    public void updateUsers(String[] users) {
+        if (currentScreen == Screen.CHAT) {
+            currentScreen.getPanel().updateUsers(users);
+        }
+    }
+
+    public void bannedWordPopup(String word) {
+        JOptionPane.showMessageDialog(this, "The word \"" + word + "\" is banned.", "Banned Word", JOptionPane.ERROR_MESSAGE);
     }
 
     public void setCurrentScreen(Screen screen) {

@@ -9,4 +9,8 @@ public record Message(String message, String sender, MessageType type) {
         String prefix = type == MessageType.NORMAL ? "" : "PRIVATE ";
         return prefix + sender + ": " + message;
     }
+
+    public String getSender() {
+        return sender;
+    }
 }
