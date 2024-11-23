@@ -6,13 +6,13 @@ public enum Screen {
     USERNAME_PROMPT(new UsernamePrompt()),
     CHAT(new Chat());
 
-    private final JPanel panel;
+    private final Scene panel;
 
-    Screen(JPanel panel) {
+    Screen(Scene panel) {
         this.panel = panel;
     }
 
-    public JPanel getPanel() {
+    public Scene getPanel() {
         return panel;
     }
 }
